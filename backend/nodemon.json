@@ -1,0 +1,8 @@
+{
+  "ignore": [
+    "uploads/*",
+    "test_clip.js",
+    "test_api.js"
+  ],
+  "delay": "1000"
+}
