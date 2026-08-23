@@ -1,12 +1,11 @@
 const multer = require('multer');
 
-// Configure memory storage to easily parse images for embeddings and conditionally stream to local files/Cloudinary
+// Memory storage so we can generate embeddings and optionally stream to Cloudinary
 const storage = multer.memoryStorage();
 
-// File validation filter
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
-  
+
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -14,7 +13,6 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Size limit of 5MB
 const upload = multer({
   storage: storage,
   fileFilter: fileFilter,

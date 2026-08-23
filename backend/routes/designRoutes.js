@@ -1,32 +1,26 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../middleware/upload');
-const { protectAdmin } = require('../middleware/auth');
+const { requireAdminKey } = require('../middleware/adminAuth');
 const {
   getDesigns,
-  getDesignsAdmin,
   getDesignById,
-  createDesign,
-  updateDesign,
-  regenerateAI,
-  deleteDesign,
   searchImage,
-  reindexAll
+  createDesign,
+  deleteDesign
 } = require('../controllers/designController');
 
-// Public gallery and details routes
+// Public gallery
 router.get('/', getDesigns);
-router.get('/:id', getDesignById);
 
-// Public AI image similarity search route
+// AI image similarity search - THE core feature
 router.post('/search/image', upload.single('image'), searchImage);
 
-// Admin protected designs CRUD and utilities
-router.get('/admin/list', protectAdmin, getDesignsAdmin);
-router.post('/', protectAdmin, upload.single('image'), createDesign);
-router.put('/:id', protectAdmin, upload.single('image'), updateDesign);
-router.post('/:id/regenerate', protectAdmin, regenerateAI);
-router.delete('/:id', protectAdmin, deleteDesign);
-router.post('/search/reindex', protectAdmin, reindexAll);
+// Single design detail
+router.get('/:id', getDesignById);
+
+// Manually add / remove a single design (admin key required)
+router.post('/', requireAdminKey, upload.single('image'), createDesign);
+router.delete('/:id', requireAdminKey, deleteDesign);
 
 module.exports = router;

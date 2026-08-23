@@ -1,9 +1,7 @@
-const fs = require('fs');
-const path = require('path');
 const PNG = require('pngjs').PNG;
 const jpeg = require('jpeg-js');
 
-// Module-level cache for model and processor
+// Module-level cache for model and processor (loaded once, reused for every request)
 let processorCache = null;
 let modelCache = null;
 
@@ -16,15 +14,13 @@ async function getPipeline() {
   }
 
   console.log('Initializing CLIP vision model (Xenova/clip-vit-base-patch32) for the first time...');
-  
+
   const transformers = require('@xenova/transformers');
   const AutoProcessor = transformers.AutoProcessor;
   const CLIPVisionModelWithProjection = transformers.CLIPVisionModelWithProjection;
 
-  // Load the preprocessor
   processorCache = await AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch32');
 
-  // Load only the vision model projection part
   modelCache = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch32', {
     progress_callback: (info) => {
       if (info.status === 'progress') {
@@ -42,21 +38,24 @@ async function getPipeline() {
  */
 function decodeImage(buffer, mimeType) {
   let width, height, data;
-  
+
   if (mimeType === 'image/png') {
     const png = PNG.sync.read(buffer);
     width = png.width;
     height = png.height;
     data = png.data; // RGBA buffer
   } else if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
-    const raw = jpeg.decode(buffer, { useTimp: true });
+    // FIX: the original code passed { useTimp: true }, which is not a real
+    // jpeg-js option (typo for useTArray). useTArray: true makes jpeg-js
+    // return a typed Uint8Array instead of a plain Array, which is faster.
+    const raw = jpeg.decode(buffer, { useTArray: true });
     width = raw.width;
     height = raw.height;
     data = raw.data; // RGBA buffer
   } else {
     // Attempt decoding as JPEG first, then PNG as fallback
     try {
-      const raw = jpeg.decode(buffer, { useTimp: true });
+      const raw = jpeg.decode(buffer, { useTArray: true });
       width = raw.width;
       height = raw.height;
       data = raw.data;
@@ -85,8 +84,7 @@ function decodeImage(buffer, mimeType) {
 
 /**
  * Generates an embedding vector for a given image file buffer.
- * Automatically saves the actual dimensions returned by the model.
- * 
+ *
  * @param {Buffer} fileBuffer - File binary data
  * @param {string} mimeType - File mime-type
  * @returns {Promise<{embedding: number[], dimensions: number}>}
@@ -94,24 +92,16 @@ function decodeImage(buffer, mimeType) {
 async function generateImageEmbedding(fileBuffer, mimeType) {
   const { processor, model } = await getPipeline();
   const { RawImage } = require('@xenova/transformers');
-  
-  // 1. Decode image to raw RGB bytes
+
   const { rgbData, width, height } = decodeImage(fileBuffer, mimeType);
   const rawImage = new RawImage(rgbData, width, height, 3);
-  
-  // 2. Run raw image through CLIP vision preprocessor
-  console.log(`Processing image coordinates (${width}x${height}) for CLIP...`);
+
   const imageInputs = await processor(rawImage);
-  
-  // 3. Extract embedding vector using CLIP Vision model features
-  console.log(`Extracting vision embeddings...`);
   const output = await model(imageInputs);
-  
-  // 4. Extract data array from tensor
+
   const embeddingArray = Array.from(output.image_embeds.data);
   const dimensions = embeddingArray.length;
-  
-  console.log(`Embedding generated successfully. Dimensions: ${dimensions}`);
+
   return {
     embedding: embeddingArray,
     dimensions
@@ -120,27 +110,28 @@ async function generateImageEmbedding(fileBuffer, mimeType) {
 
 /**
  * Calculates the cosine similarity score between two numeric vectors.
+ * (Renamed fontA/fontB -> normA/normB for clarity; behavior unchanged.)
  */
 function calculateCosineSimilarity(vecA, vecB) {
-  if (!vecA || !vecB || vecA.length !== vecB.length) {
+  if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0) {
     return 0;
   }
-  
+
   let dotProduct = 0.0;
-  let fontA = 0.0;
-  let fontB = 0.0;
-  
+  let normA = 0.0;
+  let normB = 0.0;
+
   for (let i = 0; i < vecA.length; i++) {
     dotProduct += vecA[i] * vecB[i];
-    fontA += vecA[i] * vecA[i];
-    fontB += vecB[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
   }
-  
-  if (fontA === 0 || fontB === 0) {
+
+  if (normA === 0 || normB === 0) {
     return 0;
   }
-  
-  return dotProduct / (Math.sqrt(fontA) * Math.sqrt(fontB));
+
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
 module.exports = {

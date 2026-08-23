@@ -1,14 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { createMessage, getMessages, updateMessageStatus, deleteMessage } = require('../controllers/contactController');
-const { protectAdmin } = require('../middleware/auth');
+const { createMessage, getMessages } = require('../controllers/contactController');
 
-// Public route to submit contact forms
+// Public: submit a contact form
 router.post('/', createMessage);
 
-// Admin protected routes for messages
-router.get('/', protectAdmin, getMessages);
-router.put('/:id', protectAdmin, updateMessageStatus);
-router.delete('/:id', protectAdmin, deleteMessage);
+// View submitted messages (no auth - see README security note)
+router.get('/', getMessages);
 
 module.exports = router;

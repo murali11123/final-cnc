@@ -7,18 +7,14 @@ const path = require('path');
 const fs = require('fs');
 
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
 const designRoutes = require('./routes/designRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Connect to MongoDB
-const { checkAndSeedDatabase } = require('./seed/seed');
-connectDB().then(() => {
-  checkAndSeedDatabase();
-});
+// Connect to MongoDB (logs success/failure clearly - see config/db.js)
+connectDB();
 
 // Ensure local uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -26,8 +22,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// 1. Security Middlewares
-// Disable CSP in helmet so locally uploaded SVG/PNG/JPEG files can render on client without complex header rules
+// Security middleware
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginResourcePolicy: false
@@ -41,40 +36,37 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static uploaded files
+// Serve uploaded images
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// 2. Rate Limiting
+// Rate limiting
 const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Limit each IP to 200 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 200,
   message: { message: 'Too many requests from this IP, please try again after 15 minutes.' }
 });
 
 const searchLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 30, // Limit image searches to 30 per 15 minutes to save server CPU
+  windowMs: 15 * 60 * 1000,
+  max: 30,
   message: { message: 'Too many image searches. Please wait a few minutes before trying again.' }
 });
 
-// Apply rate limiters
 app.use('/api', generalLimiter);
 app.use('/api/designs/search/image', searchLimiter);
 
-// 3. Routes
-app.use('/api/auth', authRoutes);
+// Routes
 app.use('/api/designs', designRoutes);
 app.use('/api/contact', contactRoutes);
 
-// Health Check
+// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date() });
 });
 
-// 4. Centralized Error Handling Middleware
+// Centralized error handler
 app.use((err, req, res, next) => {
   console.error('Express Error Handler:', err.stack || err.message);
-  
   const statusCode = err.statusCode || 500;
   res.status(statusCode).json({
     message: err.message || 'An unexpected server error occurred.',
@@ -82,7 +74,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
 });
