@@ -1,5 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { loginAdmin, getAdminMe } from '../services/api';
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { loginAdmin, getAdminMe } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -10,14 +10,17 @@ export const AuthProvider = ({ children }) => {
   // Check auth state on mount
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem('admin_token');
+      const token = localStorage.getItem("admin_token");
       if (token) {
         try {
           const adminData = await getAdminMe();
           setAdmin(adminData);
         } catch (error) {
-          console.error('Failed to verify token on initialization:', error.message);
-          localStorage.removeItem('admin_token');
+          console.error(
+            "Failed to verify token on initialization:",
+            error.message,
+          );
+          localStorage.removeItem("admin_token");
           setAdmin(null);
         }
       }
@@ -30,23 +33,27 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       const data = await loginAdmin(username, password);
-      localStorage.setItem('admin_token', data.token);
+      localStorage.setItem("admin_token", data.token);
       setAdmin(data.admin);
       setLoading(false);
       return data.admin;
     } catch (error) {
       setLoading(false);
-      throw new Error(error.response?.data?.message || 'Login failed. Try again.');
+      throw new Error(
+        error.response?.data?.message || "Login failed. Try again.",
+      );
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('admin_token');
+    localStorage.removeItem("admin_token");
     setAdmin(null);
   };
 
   return (
-    <AuthContext.Provider value={{ admin, loading, login, logout, isAuthenticated: !!admin }}>
+    <AuthContext.Provider
+      value={{ admin, loading, login, logout, isAuthenticated: !!admin }}
+    >
       {children}
     </AuthContext.Provider>
   );

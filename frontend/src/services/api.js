@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "http://localhost:5000/api";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -9,7 +9,7 @@ const api = axios.create({
 // Automatically inject JWT token into requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('admin_token');
+    const token = localStorage.getItem("admin_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -17,23 +17,23 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 // AUTH ENDPOINTS
 export const loginAdmin = async (username, password) => {
-  const response = await api.post('/auth/login', { username, password });
+  const response = await api.post("/auth/login", { username, password });
   return response.data;
 };
 
 export const getAdminMe = async () => {
-  const response = await api.get('/auth/me');
+  const response = await api.get("/auth/me");
   return response.data;
 };
 
 // PUBLIC DESIGNS ENDPOINTS
 export const fetchDesigns = async (params = {}) => {
-  const response = await api.get('/designs', { params });
+  const response = await api.get("/designs", { params });
   return response.data;
 };
 
@@ -43,14 +43,14 @@ export const fetchDesignById = async (id) => {
 };
 
 // PUBLIC AI SEARCH ENDPOINTS
-export const searchImageSimilarity = async (imageFile, category = 'All') => {
+export const searchImageSimilarity = async (imageFile, category = "All") => {
   const formData = new FormData();
-  formData.append('image', imageFile);
-  formData.append('category', category);
-  
-  const response = await api.post('/designs/search/image', formData, {
+  formData.append("image", imageFile);
+  formData.append("category", category);
+
+  const response = await api.post("/designs/search/image", formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      "Content-Type": "multipart/form-data",
     },
   });
   return response.data;
@@ -58,20 +58,20 @@ export const searchImageSimilarity = async (imageFile, category = 'All') => {
 
 // PUBLIC CONTACT FORM
 export const submitContactMessage = async (data) => {
-  const response = await api.post('/contact', data);
+  const response = await api.post("/contact", data);
   return response.data;
 };
 
 // ADMIN PROTECTED DESIGNS CMS ENDPOINTS
 export const fetchAdminDesigns = async (params = {}) => {
-  const response = await api.get('/designs/admin/list', { params });
+  const response = await api.get("/designs/admin/list", { params });
   return response.data;
 };
 
 export const createAdminDesign = async (formData, onUploadProgress) => {
-  const response = await api.post('/designs', formData, {
+  const response = await api.post("/designs", formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      "Content-Type": "multipart/form-data",
     },
     onUploadProgress,
   });
@@ -81,7 +81,7 @@ export const createAdminDesign = async (formData, onUploadProgress) => {
 export const updateAdminDesign = async (id, formData, onUploadProgress) => {
   const response = await api.put(`/designs/${id}`, formData, {
     headers: {
-      'Content-Type': 'multipart/form-data',
+      "Content-Type": "multipart/form-data",
     },
     onUploadProgress,
   });
@@ -99,13 +99,13 @@ export const regenerateDesignAI = async (id) => {
 };
 
 export const rebuildAllEmbeddings = async () => {
-  const response = await api.post('/designs/search/reindex');
+  const response = await api.post("/designs/search/reindex");
   return response.data;
 };
 
 // ADMIN PROTECTED CONTACT MESSAGES ENDPOINTS
 export const fetchContactMessages = async () => {
-  const response = await api.get('/contact');
+  const response = await api.get("/contact");
   return response.data;
 };
 

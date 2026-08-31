@@ -1,5 +1,5 @@
-const PNG = require('pngjs').PNG;
-const jpeg = require('jpeg-js');
+const PNG = require("pngjs").PNG;
+const jpeg = require("jpeg-js");
 
 // Module-level cache for model and processor (loaded once, reused for every request)
 let processorCache = null;
@@ -13,23 +13,35 @@ async function getPipeline() {
     return { processor: processorCache, model: modelCache };
   }
 
-  console.log('Initializing CLIP vision model (Xenova/clip-vit-base-patch32) for the first time...');
+  console.log(
+    "Initializing CLIP vision model (Xenova/clip-vit-base-patch32) for the first time...",
+  );
 
-  const transformers = require('@xenova/transformers');
+  const transformers = require("@xenova/transformers");
   const AutoProcessor = transformers.AutoProcessor;
-  const CLIPVisionModelWithProjection = transformers.CLIPVisionModelWithProjection;
+  const CLIPVisionModelWithProjection =
+    transformers.CLIPVisionModelWithProjection;
 
-  processorCache = await AutoProcessor.from_pretrained('Xenova/clip-vit-base-patch32');
+  processorCache = await AutoProcessor.from_pretrained(
+    "Xenova/clip-vit-base-patch32",
+  );
 
-  modelCache = await CLIPVisionModelWithProjection.from_pretrained('Xenova/clip-vit-base-patch32', {
-    progress_callback: (info) => {
-      if (info.status === 'progress') {
-        console.log(`Loading CLIP Model: ${info.file} - ${Math.round(info.progress)}%`);
-      }
-    }
-  });
+  modelCache = await CLIPVisionModelWithProjection.from_pretrained(
+    "Xenova/clip-vit-base-patch32",
+    {
+      progress_callback: (info) => {
+        if (info.status === "progress") {
+          console.log(
+            `Loading CLIP Model: ${info.file} - ${Math.round(info.progress)}%`,
+          );
+        }
+      },
+    },
+  );
 
-  console.log('CLIP vision model and processor successfully loaded and cached in memory.');
+  console.log(
+    "CLIP vision model and processor successfully loaded and cached in memory.",
+  );
   return { processor: processorCache, model: modelCache };
 }
 
@@ -39,12 +51,12 @@ async function getPipeline() {
 function decodeImage(buffer, mimeType) {
   let width, height, data;
 
-  if (mimeType === 'image/png') {
+  if (mimeType === "image/png") {
     const png = PNG.sync.read(buffer);
     width = png.width;
     height = png.height;
     data = png.data; // RGBA buffer
-  } else if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
+  } else if (mimeType === "image/jpeg" || mimeType === "image/jpg") {
     // FIX: the original code passed { useTimp: true }, which is not a real
     // jpeg-js option (typo for useTArray). useTArray: true makes jpeg-js
     // return a typed Uint8Array instead of a plain Array, which is faster.
@@ -66,7 +78,9 @@ function decodeImage(buffer, mimeType) {
         height = png.height;
         data = png.data;
       } catch (err) {
-        throw new Error('Unsupported image format. Please upload a valid PNG, JPG, or JPEG file.');
+        throw new Error(
+          "Unsupported image format. Please upload a valid PNG, JPG, or JPEG file.",
+        );
       }
     }
   }
@@ -74,7 +88,7 @@ function decodeImage(buffer, mimeType) {
   // Convert RGBA to RGB (3 channels) for model input compatibility
   const rgbData = new Uint8Array(width * height * 3);
   for (let i = 0; i < width * height; i++) {
-    rgbData[i * 3] = data[i * 4];       // R
+    rgbData[i * 3] = data[i * 4]; // R
     rgbData[i * 3 + 1] = data[i * 4 + 1]; // G
     rgbData[i * 3 + 2] = data[i * 4 + 2]; // B
   }
@@ -91,7 +105,7 @@ function decodeImage(buffer, mimeType) {
  */
 async function generateImageEmbedding(fileBuffer, mimeType) {
   const { processor, model } = await getPipeline();
-  const { RawImage } = require('@xenova/transformers');
+  const { RawImage } = require("@xenova/transformers");
 
   const { rgbData, width, height } = decodeImage(fileBuffer, mimeType);
   const rawImage = new RawImage(rgbData, width, height, 3);
@@ -104,7 +118,7 @@ async function generateImageEmbedding(fileBuffer, mimeType) {
 
   return {
     embedding: embeddingArray,
-    dimensions
+    dimensions,
   };
 }
 
@@ -137,5 +151,5 @@ function calculateCosineSimilarity(vecA, vecB) {
 module.exports = {
   getPipeline,
   generateImageEmbedding,
-  calculateCosineSimilarity
+  calculateCosineSimilarity,
 };
