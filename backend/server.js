@@ -70,8 +70,12 @@ app.use("/api/designs", designRoutes);
 app.use("/api/contact", contactRoutes);
 
 // Health check
-app.get("/health", (req, res) => {
-  res.json({ status: "ok", time: new Date() });
+app.get("/api/health", (req, res) => {
+  res.status(200).json({
+    status: "ok",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Centralized error handler

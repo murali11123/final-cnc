@@ -25,12 +25,4 @@ router.delete("/:id", requireAdminKey, deleteDesign);
 
 // health.js or directly in your main server file (e.g. server.js / app.js)
 
-app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-  });
-});
-
 module.exports = router;
