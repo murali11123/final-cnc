@@ -57,9 +57,6 @@ function decodeImage(buffer, mimeType) {
     height = png.height;
     data = png.data; // RGBA buffer
   } else if (mimeType === "image/jpeg" || mimeType === "image/jpg") {
-    // FIX: the original code passed { useTimp: true }, which is not a real
-    // jpeg-js option (typo for useTArray). useTArray: true makes jpeg-js
-    // return a typed Uint8Array instead of a plain Array, which is faster.
     const raw = jpeg.decode(buffer, { useTArray: true });
     width = raw.width;
     height = raw.height;
@@ -123,8 +120,20 @@ async function generateImageEmbedding(fileBuffer, mimeType) {
 }
 
 /**
+ * Wraps a promise with a timeout so a hung embedding call fails cleanly
+ * instead of hanging until Render's proxy kills the connection (502).
+ */
+function withTimeout(promise, ms, timeoutMessage = "Operation timed out") {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(timeoutMessage)), ms),
+    ),
+  ]);
+}
+
+/**
  * Calculates the cosine similarity score between two numeric vectors.
- * (Renamed fontA/fontB -> normA/normB for clarity; behavior unchanged.)
  */
 function calculateCosineSimilarity(vecA, vecB) {
   if (!vecA || !vecB || vecA.length !== vecB.length || vecA.length === 0) {
@@ -152,4 +161,5 @@ module.exports = {
   getPipeline,
   generateImageEmbedding,
   calculateCosineSimilarity,
+  withTimeout,
 };
